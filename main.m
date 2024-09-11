@@ -20,7 +20,7 @@ colorbar; % Show a colorbar
 title('CT Scan Sinogram');
 xlabel('Angle [\theta]');
 ylabel('Position [x]');
-figName = ['sinogram_' num2str(numel(angles))];
+figName = ['plots/sinogram_' num2str(numel(angles))];
 print('-deps', figName)
 
 %% A2
@@ -56,7 +56,7 @@ if numAngles == 18
   subtitle('Using naïve pixel looping');
   xlabel('Position [x]');
   ylabel('Position [y]');
-  figName = ['bp_30deg_' num2str(numel(angles))];
+  figName = ['plots/bp_30deg_' num2str(numel(angles))];
   print('-deps', figName)
   
   % v2
@@ -74,7 +74,7 @@ if numAngles == 18
   subtitle('Using meshgrid');
   xlabel('Position [x]');
   ylabel('Position [y]');
-  figName = ['bp_30deg_' num2str(numel(angles))];
+  figName = ['plots/bp_30deg_' num2str(numel(angles))];
   print('-deps', figName)
 end
 
@@ -103,7 +103,7 @@ colorbar; % Show a colorbar
 title('Back Projection image f_b(x,y)');
 xlabel('Position [x]');
 ylabel('Position [y]');
-figName = ['bp_' num2str(numel(angles))];
+figName = ['plots/bp_' num2str(numel(angles))];
 print('-deps', figName)
 
 %% B2
@@ -150,7 +150,7 @@ title('Filtered Back Projection Image');
 subtitle('Using ramp filter \omega \in [-1, 1]')
 xlabel('Position [x]');
 ylabel('Position [y]');
-figName = ['fbp_' num2str(numel(angles))];
+figName = ['plots/fbp_' num2str(numel(angles))];
 print('-deps', figName)
 
 %% C1
@@ -193,7 +193,7 @@ title('Original Image');
 subtitle('Reconstruction using iradon');
 xlabel('Position [x]');
 ylabel('Position [y]');
-figName = ['iradon_' num2str(numel(angles))];
+figName = ['plots/iradon_' num2str(numel(angles))];
 print('-deps', figName)
 
 
@@ -209,7 +209,7 @@ for idx = 1:numel(resolutions)
   lambda = resolutions(idx);
 
   for n = 1:nMax
-    imageFile = ['128_' num2str(lambda) '_N=' num2str(n) '.mat'];
+    imageFile = ['data/128_' num2str(lambda) '_N=' num2str(n) '.mat'];
     load(imageFile)
     mse = immse(result_image, original_image);
     disp(['MSSE (' imageFile '): ' num2str(mse)])
@@ -250,7 +250,7 @@ for idx = 1:numel(lambdas)
   lambda = lambdas(idx);
     
     for n = 1:nMax
-      imageFile = ['128_18_lambda=' num2str(lambda) '_N=' num2str(n) '.mat'];
+      imageFile = ['data/128_18_lambda=' num2str(lambda) '_N=' num2str(n) '.mat'];
       load(imageFile)
       mse = immse(result_image, original_image);
       disp(['MSSE (' imageFile '): ' num2str(mse)])

@@ -1,1 +1,3 @@
 *.test.*
+*.eps
+.DS_Store
