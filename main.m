@@ -1,7 +1,6 @@
 clear all
 %% Load Sinogram
 
-
 load('128_18.mat') % Part A
 % load('128_60.mat') % C3
 [numProjections, numAngles] = size(sino);
@@ -10,6 +9,7 @@ load('128_18.mat') % Part A
 l = -92:92;
 gridSize = 128;
 
+% define projection angles
 angleInterval = [10, 180];
 angles = linspace(angleInterval(1), angleInterval(2), numAngles);
 
@@ -34,21 +34,21 @@ if numAngles == 18
   disp(['Using angle index ' num2str(angleSample) ' corresponding to ' num2str(angles(angleSample))])
   
   % 
-  % v1 naïve approach
-  b30_naive = zeros(gridSize, gridSize);
+  % back projection naïve approach
+  b30Naive = zeros(gridSize, gridSize);
   for y = -63:64
     for x = -63:64
-      l_sample = round(x * cos(projectionAngleRad) - y * sin(projectionAngleRad));
+      lCartesian = round(x * cos(projectionAngleRad) - y * sin(projectionAngleRad));
       [numDatapoints, z] = size(sino(:, angleSample));
       indexMidpoint = (numDatapoints - 1) / 2;
 
-      lIndex = indexMidpoint + l_sample;
-      b30_naive(y + 64, x + 64) = sino(lIndex, angleSample);
+      lIndex = indexMidpoint + lCartesian;
+      b30Naive(y + 64, x + 64) = sino(lIndex, angleSample);
     end
   end
   
   figure;
-  imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), b30_naive);
+  imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), b30Naive);
   axis image; % Ensure the aspect ratio is correct
   colormap gray; % Use a grayscale colormap
   colorbar; % Show a colorbar
@@ -59,11 +59,11 @@ if numAngles == 18
   figName = ['plots/bp_30deg_' num2str(numel(angles))];
   print('-deps', figName)
   
-  % v2
+  % interpolation technique
   forwardProjections = sino(:, angleSample);
   [x,y] = meshgrid(linspace(-63, 63, gridSize));
-  l_cartesian = x * cos(projectionAngleRad) - y * sin(projectionAngleRad);
-  b30 = interp1(l, forwardProjections, l_cartesian, 'linear', 0);
+  lCartesian = x * cos(projectionAngleRad) - y * sin(projectionAngleRad);
+  b30 = interp1(l, forwardProjections, lCartesian, 'linear', 0);
   
   figure;
   imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), b30);
@@ -79,24 +79,27 @@ if numAngles == 18
 end
 
 %% A3
-image_a3 = zeros(gridSize, gridSize);
+imageA3 = zeros(gridSize, gridSize);
 for idx = 1:numel(angles)
   projectionAngle = angles(idx);
   angleSample = find(angles == projectionAngle);
   projectionAngleRad = deg2rad(projectionAngle);
   
-  forward_projection = sino(:, angleSample);
+  % get back projection
+  forwardProjection = sino(:, angleSample);
   
+  % interpolate
   [x,y] = meshgrid(linspace(-63, 63, gridSize));
-  l_cartesian = x * cos(projectionAngleRad) - y * sin(projectionAngleRad);
-  backProjection = interp1(l, forward_projection, l_cartesian, 'linear', 0);
-  image_a3 = image_a3 + backProjection;
+  lCartesian = x * cos(projectionAngleRad) - y * sin(projectionAngleRad);
+  backProjection = interp1(l, forwardProjection, lCartesian, 'linear', 0);
+  imageA3 = imageA3 + backProjection;
 end
 
-image_a3 = (pi / (2 * numAngles)) * image_a3;
+% normalise image
+imageA3 = (pi / (2 * numAngles)) * imageA3;
 
 figure;
-imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), image_a3);
+imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), imageA3);
 axis image; % Ensure the aspect ratio is correct
 colormap gray; % Use a grayscale colormap
 colorbar; % Show a colorbar
@@ -108,7 +111,7 @@ print('-deps', figName)
 
 %% B2
 
-image_b2 = zeros(gridSize, gridSize);
+imageB2 = zeros(gridSize, gridSize);
 
 omega = linspace(-1, 1, numProjections);
 rampFilter = abs(omega);
@@ -123,26 +126,29 @@ print -deps fbp_filter
 for idx = 1:numel(angles) 
     forwardProjections = sino(:, idx);
     
+    % forward projection in frequency domain
     P = fftshift(fft(forwardProjections));
-    P_filtered = P .* rampFilter';
-    p_filtered = ifft(ifftshift(P_filtered));
+
+    % apply filter
+    pFiltered = P .* rampFilter';
+    pFiltered = ifft(ifftshift(pFiltered));
 
     projectionAngle = angles(idx);
     projectionAngleRad = deg2rad(projectionAngle);
 
     [X, Y] = meshgrid(linspace(-64, 63, gridSize), linspace(-64, 63, gridSize));
-    s = X * cos(projectionAngleRad) - Y * sin(projectionAngleRad);
+    lCartesian = X * cos(projectionAngleRad) - Y * sin(projectionAngleRad);
 
-    backprojected = interp1(l, p_filtered, s, 'linear', 0);
-    
-    image_b2 = image_b2 + backprojected;
+    % interpolate and add
+    backprojected = interp1(l, pFiltered, lCartesian, 'linear', 0);
+    imageB2 = imageB2 + backprojected;
 end
 
-% Normalize the reconstructed image
-image_b2 = (pi / (2 * numAngles)) * image_b2;
+% normalize image
+imageB2 = (pi / (2 * numAngles)) * imageB2;
 
 figure;
-imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), image_b2);
+imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), imageB2);
 axis image; % Ensure the aspect ratio is correct
 colormap gray; % Use a grayscale colormap
 colorbar; % Show a colorbar
@@ -166,11 +172,11 @@ xlabel('Position [x]');
 ylabel('Position [y]');
 print -deps originalImage
 
-mse_a3 = immse(image_a3, original_image);
-mse_b2 = immse(image_b2, original_image);
+mseA3 = immse(imageA3, original_image);
+mseB2 = immse(imageB2, original_image);
 
-disp(['MSE for A3: ' num2str(mse_a3)]);
-disp(['MSE for B2: ' num2str(mse_b2)]);
+disp(['MSE for A3: ' num2str(mseA3)]);
+disp(['MSE for B2: ' num2str(mseB2)]);
 
 %% C2
 controlImage = iradon(sino, angles);
@@ -181,8 +187,8 @@ controlImage = controlImage(2:imageSize(1) - 1,:);
 % slice away outer cols
 controlImage = controlImage(:, 2:imageSize(2) - 1);
 
-mse_iradon = immse(controlImage, original_image);
-disp(['MSE for inverse Radon: ' num2str(mse_iradon)]);
+mseIradon = immse(controlImage, original_image);
+disp(['MSE for inverse Radon: ' num2str(mseIradon)]);
 
 figure;
 imagesc(linspace(-63, 64, gridSize), linspace(-63, 64, gridSize), controlImage)
@@ -211,8 +217,10 @@ for idx = 1:numel(resolutions)
   for n = 1:nMax
     imageFile = ['data/128_' num2str(lambda) '_N=' num2str(n) '.mat'];
     load(imageFile)
+
     mse = immse(result_image, original_image);
     disp(['MSSE (' imageFile '): ' num2str(mse)])
+    
     results(n, idx) = mse;
   end
 end
@@ -252,8 +260,10 @@ for idx = 1:numel(lambdas)
     for n = 1:nMax
       imageFile = ['data/128_18_lambda=' num2str(lambda) '_N=' num2str(n) '.mat'];
       load(imageFile)
+      
       mse = immse(result_image, original_image);
       disp(['MSSE (' imageFile '): ' num2str(mse)])
+      
       results(n, idx) = mse;
     end
     
